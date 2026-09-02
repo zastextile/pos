@@ -103,10 +103,10 @@ label input, label textarea, label select { display: block; margin-top: 7px; fon
 .total-row span { color: var(--muted); font-size: 12px; font-weight: 850; letter-spacing: .07em; }
 .total-row strong { font-size: 24px; letter-spacing: -.035em; }
 
-.bottom-nav { position: fixed; z-index: 25; right: 0; bottom: 0; left: 0; display: grid; width: 100%; height: calc(70px + env(safe-area-inset-bottom)); margin: auto; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: #fff; padding-bottom: env(safe-area-inset-bottom); }
-.staff-shell + .bottom-nav { grid-template-columns: repeat(4, 1fr); }
+.bottom-nav { position: fixed; z-index: 25; right: 0; bottom: 0; left: 0; display: grid; width: 100%; height: calc(70px + env(safe-area-inset-bottom)); margin: auto; grid-auto-flow: column; grid-auto-columns: 1fr; border-top: 1px solid var(--line); background: #fff; padding-bottom: env(safe-area-inset-bottom); }
+.staff-shell + .bottom-nav { grid-auto-columns: 1fr; }
 .bottom-nav a, .bottom-nav form, .bottom-nav button { min-width: 0; height: 70px; }
-.bottom-nav a, .bottom-nav button { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; border: 0; color: #7c8a84; background: transparent; font-size: 10.5px; font-weight: 750; }
+.bottom-nav a, .bottom-nav button { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; padding: 0 2px; border: 0; color: #7c8a84; background: transparent; font-size: 10.5px; font-weight: 750; white-space: nowrap; }
 .bottom-nav form { margin: 0; }
 .bottom-nav button { width: 100%; }
 .bottom-nav span { font-size: 20px; line-height: 1; }
