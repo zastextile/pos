@@ -1,0 +1,48 @@
+ZAS SALES RECORDER — UPGRADE TO v2
+==================================
+
+New in this release
+-------------------
+- Thermal receipts (58 / 80 / 100 / 112 mm rolls) instead of A4, with
+  print, save-as-photo, and WhatsApp share plus a public receipt link.
+- Discounts by percentage or fixed rupee amount, capped per salesman by a
+  maximum-percent limit the admin sets on each staff account.
+- Product photos: cropped square and compressed under 100 KB automatically.
+- Product categories, shown to staff as tabs on the sale screen.
+- Customer directory, searchable at checkout, addable by admin or salesman.
+- Reports grouped by product, category, customer, salesman and discount.
+
+Upgrading an existing installation
+----------------------------------
+1. Back up the database first.
+
+2. Upload the new files over the existing ones in public_html.
+   Keep your existing .env — it is not part of this package.
+
+3. From public_html, run the migration once:
+
+       php bin/migrate_v2.php
+
+   It is safe to run more than once; it only applies what is missing.
+   It adds the new tables and columns, backfills receipt share tokens for
+   past sales, and imports the customer names already typed into old sales
+   into the new customer directory.
+
+4. Confirm that uploads/ exists and is writable by the web user (0755).
+   The migration creates it along with an .htaccess that stops anything in
+   there from being executed.
+
+5. In the app, go to Dashboard > Receipt Setup and choose your printer roll
+   width, shop name, phone, address and footer line.
+
+6. Go to Staff and set a Maximum Discount percent for each salesman.
+   The default is 0, which blocks discounts until you raise it.
+
+Notes
+-----
+- Discount limits are enforced on the server, not just in the phone UI. A
+  fixed rupee discount is checked against the same percentage ceiling.
+- Receipt links are unguessable tokens and show only that one receipt, with
+  no login. Anyone holding the link can see it, so treat it like the paper.
+- Product photos are re-encoded on the server, so an oversized or mislabelled
+  file cannot get through at full size.

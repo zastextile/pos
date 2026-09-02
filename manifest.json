@@ -1,0 +1,15 @@
+{
+  "name": "ZAS Sales Recorder",
+  "short_name": "ZAS Sales",
+  "description": "Fast mobile sales recording for store teams.",
+  "start_url": "./index.php?page=sale",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7faf8",
+  "theme_color": "#0b7656",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
