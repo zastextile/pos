@@ -1,7 +1,4 @@
 .env
-.env.save
 .DS_Store
 Thumbs.db
 *.log
-uploads/products/*
-!uploads/products/.gitkeep

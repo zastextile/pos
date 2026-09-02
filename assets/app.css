@@ -373,3 +373,5 @@ label input, label textarea, label select { display: block; margin-top: 7px; fon
 .share-link-field input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--muted); font-size: 12.5px; }
 .button.tiny { flex: 0 0 auto; padding: 9px 15px; font-size: 13px; }
 .public-receipt .page-shell { padding-bottom: 32px; }
+.account-signout { margin-top: 14px; }
+.account-signout .button { border-color: var(--danger); color: var(--danger); }

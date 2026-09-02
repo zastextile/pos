@@ -14,7 +14,14 @@ if ($page === 'logout') {
         http_response_code(405);
         exit('Method not allowed.');
     }
-    
+
+    try {
+        verify_csrf();
+    } catch (Throwable $exception) {
+        http_response_code(419);
+        exit('Your session expired. Please refresh and try again.');
+    }
+
     logout_user();
     header('Location: index.php?page=login');
     exit;
@@ -58,7 +65,7 @@ if ($user['role'] === 'admin') {
     $allowed = [
         'admin-dashboard', 'products', 'product-form', 'admin-sales', 'staff', 'staff-form',
         'sale-detail', 'receipt', 'categories', 'category-form', 'customers', 'customer-form',
-        'reports', 'shop-settings',
+        'reports', 'shop-settings', 'account',
     ];
     if (!in_array($page, $allowed, true)) {
         redirect('admin-dashboard');
@@ -122,6 +129,9 @@ switch ($page) {
     case 'shop-settings':
         render_shop_settings($user);
         break;
+    case 'account':
+        render_account($user);
+        break;
 }
 
 /**
@@ -183,6 +193,7 @@ function handle_admin_actions(string $page): void
     $actions = [
         'product-save', 'product-status', 'product-delete', 'staff-save', 'staff-status',
         'category-save', 'category-status', 'category-delete', 'customer-status', 'settings-save',
+        'account-save',
     ];
     if (!in_array($page, $actions, true)) {
         return;
@@ -333,6 +344,60 @@ function handle_admin_actions(string $page): void
             redirect('customers');
         }
 
+        if ($page === 'account-save') {
+            $admin = require_role('admin');
+            $name = trim((string) ($_POST['name'] ?? ''));
+            $current = (string) ($_POST['current_password'] ?? '');
+            $password = (string) ($_POST['password'] ?? '');
+            $confirm = (string) ($_POST['password_confirm'] ?? '');
+
+            if ($name === '' || strlen($name) > 120) {
+                throw new RuntimeException('Enter your name.');
+            }
+
+            // Changing the password requires proving you know the old one, so a
+            // walk-up on an unlocked phone cannot lock the owner out.
+            $check = database()->prepare('SELECT password FROM users WHERE id = :id LIMIT 1');
+            $check->execute(['id' => $admin['id']]);
+            $hash = (string) $check->fetchColumn();
+
+            if (!password_verify($current, $hash)) {
+                throw new RuntimeException('Your current password is not correct.');
+            }
+
+            if ($password !== '' || $confirm !== '') {
+                if (strlen($password) < 8) {
+                    throw new RuntimeException('The new password must be at least 8 characters.');
+                }
+
+                if ($password !== $confirm) {
+                    throw new RuntimeException('The two new passwords do not match.');
+                }
+
+                $update = database()->prepare('UPDATE users SET name = :name, password = :password WHERE id = :id');
+                $update->execute([
+                    'name' => $name,
+                    'password' => password_hash($password, PASSWORD_DEFAULT),
+                    'id' => $admin['id'],
+                ]);
+
+                // The signed-in session survives, but every other device is cut
+                // off because the cookie is re-issued against the new password.
+                session_regenerate_id(true);
+                set_auth_cookie((int) $admin['id']);
+                unset($_SESSION['user']);
+
+                set_flash('success', 'Password changed. Other devices have been signed out.');
+                redirect('account');
+            }
+
+            $update = database()->prepare('UPDATE users SET name = :name WHERE id = :id');
+            $update->execute(['name' => $name, 'id' => $admin['id']]);
+            unset($_SESSION['user']);
+            set_flash('success', 'Your name was updated.');
+            redirect('account');
+        }
+
         if ($page === 'settings-save') {
             $width = (string) ($_POST['receipt_width'] ?? '100');
             if (!array_key_exists($width, receipt_widths())) {
@@ -380,6 +445,10 @@ function handle_admin_actions(string $page): void
 
     if (str_starts_with($page, 'settings')) {
         redirect('shop-settings');
+    }
+
+    if (str_starts_with($page, 'account')) {
+        redirect('account');
     }
 
     redirect('staff');
@@ -715,6 +784,7 @@ function render_admin_dashboard(array $user): void
         <a href="index.php?page=categories">Categories</a>
         <a href="index.php?page=customers">Customers</a>
         <a href="index.php?page=shop-settings">Receipt Setup</a>
+        <a href="index.php?page=account">My Account</a>
     </nav>
     <div class="section-heading padded-top"><div><p class="eyebrow muted-label">BY SALES STAFF</p><h2>Staff performance</h2></div></div>
     <section class="staff-performance">
@@ -1074,4 +1144,40 @@ function render_shop_settings(array $user): void
         <button class="button primary full" type="submit">SAVE SETTINGS</button>
     </form><?php
     layout_end($user, 'shop-settings');
+}
+
+function render_account(array $user): void
+{
+    $statement = database()->prepare('SELECT name, username, created_at FROM users WHERE id = :id LIMIT 1');
+    $statement->execute(['id' => $user['id']]);
+    $account = $statement->fetch() ?: ['name' => $user['name'], 'username' => $user['username'], 'created_at' => ''];
+
+    layout_start('My Account', $user, 'account');
+    page_heading('ADMIN', 'My Account', $user, 'index.php?page=admin-dashboard');
+    ?>
+    <section class="detail-summary">
+        <div><span>Signed in as</span><strong><?= e($account['username']) ?></strong></div>
+        <div><span>Role</span><strong>Administrator</strong></div>
+    </section>
+
+    <form class="form-card management-form" method="post" action="index.php?page=account-save" autocomplete="off">
+        <?= csrf_field() ?>
+        <label>Your Name<input name="name" maxlength="120" required value="<?= e($account['name']) ?>"></label>
+
+        <label>Current Password<input type="password" name="current_password" autocomplete="current-password" required placeholder="Enter your current password"></label>
+        <p class="muted small">Required to save any change on this page.</p>
+
+        <label>New Password <span>Leave blank to keep current</span><input type="password" name="password" minlength="8" autocomplete="new-password" placeholder="Minimum 8 characters"></label>
+        <label>Confirm New Password<input type="password" name="password_confirm" minlength="8" autocomplete="new-password" placeholder="Type the new password again"></label>
+
+        <button class="button primary full" type="submit">SAVE CHANGES</button>
+    </form>
+
+    <form method="post" action="index.php?page=logout" class="account-signout">
+        <?= csrf_field() ?>
+        <button class="button secondary full" type="submit">SIGN OUT OF THIS DEVICE</button>
+    </form>
+    <p class="muted small center">Changing your password signs out every other device.</p>
+    <?php
+    layout_end($user, 'account');
 }
