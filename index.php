@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/app/bootstrap.php';
 require __DIR__ . '/app/receipt.php';
 require __DIR__ . '/app/reports.php';
+require __DIR__ . '/app/diagnostics.php';
 
 $page = (string) ($_GET['page'] ?? (current_user() ? (current_user()['role'] === 'admin' ? 'admin-dashboard' : 'sale') : 'login'));
 $publicPages = ['login'];
@@ -65,7 +66,7 @@ if ($user['role'] === 'admin') {
     $allowed = [
         'admin-dashboard', 'products', 'product-form', 'admin-sales', 'staff', 'staff-form',
         'sale-detail', 'receipt', 'categories', 'category-form', 'customers', 'customer-form',
-        'reports', 'shop-settings', 'account',
+        'reports', 'shop-settings', 'account', 'diagnostics',
     ];
     if (!in_array($page, $allowed, true)) {
         redirect('admin-dashboard');
@@ -131,6 +132,9 @@ switch ($page) {
         break;
     case 'account':
         render_account($user);
+        break;
+    case 'diagnostics':
+        render_diagnostics($user);
         break;
 }
 
@@ -510,7 +514,7 @@ function render_login(string $error): void
             <button class="button primary full" type="submit">LOGIN</button>
         </form>
         <?= install_banner() ?>
-        <p class="secure-note">Secure staff access</p>
+        <p class="secure-note">Secure staff access · v<?= e(APP_VERSION) ?></p>
     </main><script src="<?= e(asset('assets/app.js')) ?>" defer></script>
     <script src="<?= e(asset('assets/install.js')) ?>" defer></script></body></html><?php
 }
@@ -849,6 +853,7 @@ function render_admin_dashboard(array $user): void
         <a href="index.php?page=customers">Customers</a>
         <a href="index.php?page=shop-settings">Receipt Setup</a>
         <a href="index.php?page=account">My Account</a>
+        <a href="index.php?page=diagnostics">Installation Check</a>
     </nav>
     <div class="section-heading padded-top"><div><p class="eyebrow muted-label">BY SALES STAFF</p><h2>Staff performance</h2></div></div>
     <section class="staff-performance">

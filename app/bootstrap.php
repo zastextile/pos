@@ -11,6 +11,7 @@ if (
 }
 
 define('APP_ROOT', dirname(__DIR__));
+define('APP_VERSION', '2.3');
 
 function load_environment(string $path): void
 {

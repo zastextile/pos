@@ -396,3 +396,10 @@ label input, label textarea, label select { display: block; margin-top: 7px; fon
 .install-banner .button.hidden { display: none; }
 .install-dismiss { flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font-size: 19px; line-height: 1; cursor: pointer; }
 .login-page .install-banner { width: 100%; margin: 18px 0 0; }
+.check-list { display: grid; gap: 8px; }
+.check-row { display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.check-row.bad { border-color: #eccfd1; background: #fdf6f6; }
+.check-mark { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 999px; color: #fff; background: var(--green); font-size: 13px; font-weight: 800; text-align: center; line-height: 22px; }
+.check-row.bad .check-mark { background: var(--danger); }
+.check-row h3 { margin: 0; font-size: 13.5px; font-weight: 700; word-break: break-word; }
+.check-row p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
