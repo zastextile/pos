@@ -863,3 +863,16 @@ function public_receipt_url(string $token): string
 {
     return app_base_url() . '/index.php?page=receipt&t=' . rawurlencode($token);
 }
+
+/**
+ * Appends the file's modification time to an asset URL. A new upload therefore
+ * gets a new URL, so neither the browser cache nor the service worker can pin
+ * a stale stylesheet or script after a deploy.
+ */
+function asset(string $path): string
+{
+    $file = APP_ROOT . '/' . ltrim($path, '/');
+    $stamp = is_file($file) ? filemtime($file) : null;
+
+    return $stamp ? $path . '?v=' . $stamp : $path;
+}

@@ -193,7 +193,7 @@ function handle_admin_actions(string $page): void
     $actions = [
         'product-save', 'product-status', 'product-delete', 'staff-save', 'staff-status',
         'category-save', 'category-status', 'category-delete', 'customer-status', 'settings-save',
-        'account-save',
+        'account-save', 'sale-delete',
     ];
     if (!in_array($page, $actions, true)) {
         return;
@@ -344,6 +344,34 @@ function handle_admin_actions(string $page): void
             redirect('customers');
         }
 
+        if ($page === 'sale-delete') {
+            $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
+
+            if (!$id) {
+                throw new RuntimeException('That sale could not be found.');
+            }
+
+            // Read it first so the confirmation message can name what went.
+            $lookup = database()->prepare('SELECT id, staff_name, total_amount, sale_date FROM sales WHERE id = :id LIMIT 1');
+            $lookup->execute(['id' => $id]);
+            $sale = $lookup->fetch();
+
+            if (!$sale) {
+                throw new RuntimeException('That sale could not be found.');
+            }
+
+            // sale_items are removed by the foreign key's ON DELETE CASCADE.
+            $delete = database()->prepare('DELETE FROM sales WHERE id = :id');
+            $delete->execute(['id' => $id]);
+
+            set_flash(
+                'success',
+                'Sale #' . (int) $sale['id'] . ' by ' . $sale['staff_name']
+                . ' (' . money($sale['total_amount']) . ') was deleted.'
+            );
+            redirect('admin-sales');
+        }
+
         if ($page === 'account-save') {
             $admin = require_role('admin');
             $name = trim((string) ($_POST['name'] ?? ''));
@@ -443,6 +471,10 @@ function handle_admin_actions(string $page): void
         redirect('customers');
     }
 
+    if (str_starts_with($page, 'sale')) {
+        redirect('admin-sales');
+    }
+
     if (str_starts_with($page, 'settings')) {
         redirect('shop-settings');
     }
@@ -460,10 +492,10 @@ function render_login(string $error): void
     ?><!doctype html>
     <html lang="en"><head>
         <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-        <meta name="theme-color" content="#0b7656"><meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#0b7656"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ZAS Sales">
         <title><?= e(app_name()) ?> — Login</title>
-        <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icons/icon-192.png">
-        <link rel="stylesheet" href="assets/app.css">
+        <link rel="manifest" href="<?= e(asset('manifest.json')) ?>"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+        <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
     </head><body class="login-body">
     <main class="login-page">
         <div class="brand-mark" aria-hidden="true"><span>|||||</span></div>
@@ -477,8 +509,23 @@ function render_login(string $error): void
             <label>Password<input type="password" name="password" autocomplete="current-password" required placeholder="Enter password"></label>
             <button class="button primary full" type="submit">LOGIN</button>
         </form>
+        <?= install_banner() ?>
         <p class="secure-note">Secure staff access</p>
-    </main><script src="assets/app.js" defer></script></body></html><?php
+    </main><script src="<?= e(asset('assets/app.js')) ?>" defer></script>
+    <script src="<?= e(asset('assets/install.js')) ?>" defer></script></body></html><?php
+}
+
+/**
+ * Prompts for installation to the home screen. Android supplies a real
+ * install prompt; iOS Safari has none, so it gets the Share-sheet wording.
+ */
+function install_banner(): string
+{
+    return '<div class="install-banner hidden" id="install-banner">'
+        . '<div class="install-text"><b>Add to your phone</b><span id="install-hint"></span></div>'
+        . '<button class="button primary" id="install-go" type="button">INSTALL</button>'
+        . '<button class="install-dismiss" id="install-dismiss" type="button" aria-label="Not now">×</button>'
+        . '</div>';
 }
 
 function layout_start(string $title, array $user, string $page, string $class = ''): void
@@ -487,20 +534,22 @@ function layout_start(string $title, array $user, string $page, string $class = 
     ?><!doctype html>
     <html lang="en"><head>
         <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-        <meta name="theme-color" content="#0b7656"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="theme-color" content="#0b7656"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="ZAS Sales">
         <title><?= e($title) ?> — <?= e(app_name()) ?></title>
-        <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="stylesheet" href="assets/app.css">
+        <link rel="manifest" href="<?= e(asset('manifest.json')) ?>"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png"><link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
     </head><body class="<?= e($class) ?>" data-page="<?= e($page) ?>">
     <main class="page-shell <?= $user['role'] === 'admin' ? 'admin-shell' : 'staff-shell' ?>">
+    <?= install_banner() ?>
     <?php if ($flash): ?><div class="alert <?= e($flash['type']) ?>" role="status"><?= e($flash['message']) ?></div><?php endif;
 }
 
 function layout_end(array $user, string $page, bool $scanner = false, bool $receipt = false): void
 {
     ?></main><?= bottom_navigation($user, $page) ?>
-    <?php if ($scanner): ?><script src="vendor/html5-qrcode.min.js" defer></script><?php endif; ?>
-    <?php if ($receipt): ?><script src="assets/receipt.js" defer></script><?php endif; ?>
-    <script src="assets/app.js" defer></script></body></html><?php
+    <?php if ($scanner): ?><script src="<?= e(asset('vendor/html5-qrcode.min.js')) ?>" defer></script><?php endif; ?>
+    <?php if ($receipt): ?><script src="<?= e(asset('assets/receipt.js')) ?>" defer></script><?php endif; ?>
+    <script src="<?= e(asset('assets/install.js')) ?>" defer></script>
+    <script src="<?= e(asset('assets/app.js')) ?>" defer></script></body></html><?php
 }
 
 function bottom_navigation(array $user, string $page): string
@@ -700,6 +749,13 @@ function render_staff_summary(array $user): void
     <div class="section-heading padded-top"><div><p class="eyebrow muted-label">RECENT ACTIVITY</p><h2>Latest sales</h2></div><a class="link-button" href="index.php?page=my-sales">View all</a></div>
     <section class="compact-list">
         <?php foreach ($recent->fetchAll() as $sale): ?><a href="index.php?page=sale-detail&id=<?= (int) $sale['id'] ?>"><div><b>#<?= (int) $sale['id'] ?></b><span><?= e(friendly_date($sale['sale_date'])) ?> · <?= e($sale['customer_name'] ?: 'Walk-in') ?></span></div><strong><?= e(money($sale['total_amount'])) ?> ›</strong></a><?php endforeach; ?>
+    </section>
+    <section class="signed-in-as">
+        <div><span>Signed in as</span><strong><?= e($user['name']) ?></strong></div>
+        <form method="post" action="index.php?page=logout">
+            <?= csrf_field() ?>
+            <button class="button secondary full" type="submit">SIGN OUT</button>
+        </form>
     </section><?php
     layout_end($user, 'summary');
 }
@@ -736,6 +792,14 @@ function render_sale_detail(array $user): void
         <div class="detail-total"><span>Total Sale</span><strong><?= e(money($sale['total_amount'])) ?></strong></div>
     </section>
     <a class="button primary full receipt-cta" href="index.php?page=receipt&id=<?= (int) $sale['id'] ?>">PRINT / SHARE RECEIPT</a>
+    <?php if ($user['role'] === 'admin'): ?>
+    <form class="danger-zone" method="post" action="index.php?page=sale-delete"
+          onsubmit="return confirm('Delete sale #<?= (int) $sale['id'] ?> by <?= e(addslashes($sale['staff_name'])) ?> for <?= e(money($sale['total_amount'])) ?>?\n\nThis cannot be undone, and the sale will drop out of every report.')">
+        <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $sale['id'] ?>">
+        <p>Deleting removes this sale and its items permanently, and every report will change to match.</p>
+        <button class="button delete-sale full" type="submit">DELETE THIS SALE</button>
+    </form>
+    <?php endif; ?>
     <div class="section-heading padded-top"><div><p class="eyebrow muted-label">PRODUCTS</p><h2>Sale items</h2></div></div>
     <section class="item-list">
         <?php foreach ($items->fetchAll() as $item): ?><article><div><h3><?= e($item['product_name']) ?></h3><p><?= e($item['barcode']) ?> · <?= e(money($item['rate'])) ?> × <?= (int) $item['quantity'] ?></p></div><strong><?= e(money($item['line_total'])) ?></strong></article><?php endforeach; ?>

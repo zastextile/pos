@@ -185,13 +185,32 @@
         </div>
         <div class="quantity-row">
           <button class="quantity-button" type="button" data-action="decrease" aria-label="Decrease ${escapeHtml(item.name)}">−</button>
-          <output aria-label="${item.quantity} units">${item.quantity}</output>
+          <input class="quantity-input" type="number" inputmode="numeric" min="1" max="9999" step="1"
+                 value="${item.quantity}" data-quantity-input aria-label="Quantity of ${escapeHtml(item.name)}">
           <button class="quantity-button" type="button" data-action="increase" aria-label="Increase ${escapeHtml(item.name)}">+</button>
           <button class="remove-item" type="button" data-action="remove">Remove</button>
         </div>
-      </article>`).join("")}</div>`;
+      </article>`).join("")}</div>
+      <p class="cart-hint">Tap a quantity to type it — quicker than pressing + for a dozen.</p>`;
     persistCart();
     renderCatalog();
+  }
+
+  /**
+   * Refreshes the money on screen without rebuilding the cart, so the field
+   * the salesman is typing into keeps its focus and cursor.
+   */
+  function refreshTotalsInPlace() {
+    cart.forEach((item) => {
+      const card = elements.cartList.querySelector(`[data-product-id="${item.id}"]`);
+      if (card) {
+        const amount = card.querySelector(".item-head strong");
+        if (amount) amount.textContent = formatMoney(item.rate * item.quantity);
+      }
+    });
+    elements.saleTotal.textContent = formatMoney(cartTotal());
+    renderTotals();
+    persistCart();
   }
 
   function showToast(message, isError = false) {
@@ -513,6 +532,45 @@
     if (button.dataset.action === "decrease") item.quantity -= 1;
     if (button.dataset.action === "remove" || item.quantity < 1) cart = cart.filter((product) => product.id !== id);
     renderCart();
+  });
+
+  // Typing a number beats tapping "+" fifty times for a dozen-count order.
+  elements.cartList.addEventListener("input", (event) => {
+    const field = event.target.closest("[data-quantity-input]");
+    if (!field) return;
+    const card = field.closest("[data-product-id]");
+    const item = cart.find((product) => product.id === Number(card.dataset.productId));
+    if (!item) return;
+
+    const typed = parseInt(field.value, 10);
+    // An empty box mid-edit is not an error; treat it as 1 for the running total.
+    item.quantity = Number.isNaN(typed) ? 1 : Math.min(9999, Math.max(1, typed));
+    refreshTotalsInPlace();
+  });
+
+  // On blur or Enter, tidy what was typed. The cart is corrected in place
+  // rather than rebuilt: moving from one quantity box straight to the next
+  // would otherwise replace the field under the salesman's finger and lose
+  // the second edit.
+  elements.cartList.addEventListener("change", (event) => {
+    const field = event.target.closest("[data-quantity-input]");
+    if (!field) return;
+    const card = field.closest("[data-product-id]");
+    const item = cart.find((product) => product.id === Number(card.dataset.productId));
+    if (!item) return;
+
+    const typed = parseInt(field.value, 10);
+    item.quantity = Number.isNaN(typed) ? 1 : Math.min(9999, Math.max(1, typed));
+    field.value = item.quantity;
+    refreshTotalsInPlace();
+    renderCatalog();
+  });
+
+  elements.cartList.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.target.closest("[data-quantity-input]")) {
+      event.preventDefault();
+      event.target.blur();
+    }
   });
 
   elements.cartClear.addEventListener("click", () => {

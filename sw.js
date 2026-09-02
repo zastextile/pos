@@ -1,24 +1,22 @@
-const CACHE = "zas-sales-static-v2";
+// Bump VERSION on every release. The old cache is dropped on activate.
+const VERSION = "v3";
+const CACHE = `zas-sales-static-${VERSION}`;
 
-const STATIC_FILES = [
+const PRECACHE = [
   "./assets/app.css",
   "./assets/app.js",
+  "./assets/receipt.js",
   "./vendor/html5-qrcode.min.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
 
-const STATIC_URLS = new Set(
-  STATIC_FILES.map((file) =>
-    new URL(file, self.registration.scope).href
-  )
-);
-
 self.addEventListener("install", (event) => {
+  // A single missing file must not abort the whole install.
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      cache.addAll(STATIC_FILES)
+      Promise.all(PRECACHE.map((file) => cache.add(file).catch(() => undefined)))
     )
   );
 
@@ -39,32 +37,45 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+function isStaticAsset(url) {
+  return (
+    url.pathname.includes("/assets/") ||
+    url.pathname.includes("/vendor/") ||
+    url.pathname.includes("/icons/") ||
+    url.pathname.endsWith("manifest.json")
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
-  if (
-    request.method !== "GET" ||
-    request.mode === "navigate" ||
-    !STATIC_URLS.has(request.url)
-  ) {
+  if (request.method !== "GET" || request.mode === "navigate") {
     return;
   }
 
+  const url = new URL(request.url);
+
+  if (url.origin !== self.location.origin || !isStaticAsset(url)) {
+    return;
+  }
+
+  // Stale-while-revalidate: the counter still loads instantly and offline,
+  // but a stylesheet or script updated on the server lands on the next
+  // load instead of being pinned to whatever was cached first.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
+    caches.open(CACHE).then((cache) =>
+      cache.match(request).then((cached) => {
+        const network = fetch(request)
+          .then((response) => {
+            if (response && response.ok) {
+              cache.put(request, response.clone());
+            }
+            return response;
+          })
+          .catch(() => cached);
 
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          caches.open(CACHE).then((cache) => {
-            cache.put(request, response.clone());
-          });
-        }
-
-        return response;
-      });
-    })
+        return cached || network;
+      })
+    )
   );
 });

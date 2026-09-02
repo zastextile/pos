@@ -375,3 +375,24 @@ label input, label textarea, label select { display: block; margin-top: 7px; fon
 .public-receipt .page-shell { padding-bottom: 32px; }
 .account-signout { margin-top: 14px; }
 .account-signout .button { border-color: var(--danger); color: var(--danger); }
+.quantity-input { width: 68px; height: 44px; padding: 0 6px; border: 1px solid #ccd6d1; border-radius: 13px; background: #fff; color: var(--ink); font-size: 18px; font-weight: 850; text-align: center; -moz-appearance: textfield; }
+.quantity-input::-webkit-outer-spin-button, .quantity-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.quantity-input:focus { border-color: var(--green); outline: 2px solid rgba(11, 118, 86, .18); outline-offset: 1px; }
+.cart-hint { margin: 10px 2px 0; color: var(--muted); font-size: 12.5px; }
+.signed-in-as { margin-top: 26px; padding: 15px 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.signed-in-as div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.signed-in-as span { color: var(--muted); font-size: 13px; }
+.signed-in-as strong { font-size: 15px; font-weight: 750; }
+.signed-in-as .button { border-color: var(--danger); color: var(--danger); }
+.danger-zone { margin-top: 26px; padding: 15px 16px; border: 1px solid #eccfd1; border-radius: 14px; background: #fdf6f6; }
+.danger-zone p { margin: 0 0 12px; color: #8a4046; font-size: 12.5px; }
+.button.delete-sale { border: 1px solid var(--danger); color: #fff; background: var(--danger); }
+.install-banner { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--mint); }
+.install-banner.hidden { display: none; }
+.install-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.install-text b { font-size: 14.5px; font-weight: 750; }
+.install-text span { color: var(--muted); font-size: 12.5px; }
+.install-banner .button { flex: 0 0 auto; padding: 9px 15px; font-size: 13px; }
+.install-banner .button.hidden { display: none; }
+.install-dismiss { flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font-size: 19px; line-height: 1; cursor: pointer; }
+.login-page .install-banner { width: 100%; margin: 18px 0 0; }

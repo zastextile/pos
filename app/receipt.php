@@ -192,7 +192,7 @@ function render_public_receipt(string $token): void
         http_response_code(404);
         ?><!doctype html><html lang="en"><head><meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
-        <title>Receipt not found</title><link rel="stylesheet" href="assets/app.css"></head>
+        <title>Receipt not found</title><link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>"></head>
         <body class="login-body"><main class="login-page"><h1>Receipt not found</h1>
         <p class="muted center">This receipt link is not valid or has been removed.</p></main></body></html><?php
         exit;
@@ -204,7 +204,7 @@ function render_public_receipt(string $token): void
         <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
         <meta name="theme-color" content="#0b7656"><meta name="robots" content="noindex,nofollow">
         <title>Receipt #<?= (int) $data['sale']['id'] ?> — <?= e($payload['shop']['name']) ?></title>
-        <link rel="stylesheet" href="assets/app.css">
+        <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
     </head><body class="receipt-body public-receipt">
     <main class="page-shell">
         <section class="receipt-stage"><?php receipt_paper($payload); ?></section>
@@ -213,7 +213,7 @@ function render_public_receipt(string $token): void
         </div>
     </main>
     <?php receipt_print_styles($payload['width']); ?>
-    <script src="assets/receipt.js" defer></script>
+    <script src="<?= e(asset('assets/receipt.js')) ?>" defer></script>
     </body></html><?php
     exit;
 }
